@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>void.music</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@200;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080808;
+      --bg2: #0f0f0f;
+      --bg3: #161616;
+      --line: #1f1f1f;
+      --muted: #333;
+      --text: #c8c8c8;
+      --dim: #555;
+      --accent: #7c6aff;
+      --accent2: #ff6a8a;
+      --glow: rgba(124, 106, 255, 0.15);
+      --font-mono: 'Space Mono', monospace;
+      --font-display: 'Unbounded', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* фоновая сетка */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px 120px;
+    }
+
+    /* хедер */
+    header {
+      padding: 40px 0 32px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 200;
+      font-size: clamp(20px, 4vw, 28px);
+      letter-spacing: -0.03em;
+      color: #fff;
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.4s, box-shadow 0.4s;
+      flex-shrink: 0;
+      margin-left: auto;
+      align-self: center;
+    }
+
+    .status-dot.online {
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade8088;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.offline {
+      background: var(--accent2);
+      box-shadow: 0 0 8px rgba(255,106,138,0.5);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ошибка */
+    .error-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
+      gap: 16px;
+    }
+
+    .error-screen.visible { display: flex; }
+
+    .error-code {
+      font-family: var(--font-display);
+      font-size: clamp(64px, 15vw, 120px);
+      font-weight: 400;
+      color: var(--accent2);
+      line-height: 1;
+      opacity: 0.15;
+      letter-spacing: -0.05em;
+    }
+
+    .error-title {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-top: -32px;
+    }
+
+    .error-msg {
+      font-size: 12px;
+      color: var(--dim);
+      max-width: 320px;
+      line-height: 1.8;
+      margin-top: 8px;
+    }
+
+    .retry-btn {
+      margin-top: 16px;
+      padding: 10px 24px;
+      background: transparent;
+      border: 1px solid var(--accent2);
+      color: var(--accent2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .retry-btn:hover {
+      background: var(--accent2);
+      color: #000;
+    }
+
+    /* поиск */
+    .search-row {
+      padding: 20px 0 0;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      background: var(--bg2);
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-input::placeholder { color: var(--muted); }
+
+    .track-count {
+      font-size: 11px;
+      color: var(--dim);
+      white-space: nowrap;
+    }
+
+    /* список */
+    .tracklist {
+      margin-top: 8px;
+    }
+
+    .track-item {
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      transition: background 0.15s;
+      border-radius: 2px;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    .track-item:hover {
+      background: var(--bg3);
+    }
+
+    .track-item.active {
+      background: var(--glow);
+      border-color: var(--accent);
+    }
+
+    .track-item.active .track-artist {
+      color: var(--accent);
+    }
+
+    .track-num {
+      font-size: 11px;
+      color: var(--dim);
+      text-align: right;
+    }
+
+    .track-item.active .track-num {
+      color: var(--accent);
+    }
+
+    .track-info { min-width: 0; }
+
+    .track-title {
+      font-size: 13px;
+      color: #e0e0e0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-artist {
+      font-size: 11px;
+      color: var(--dim);
+      margin-top: 2px;
+    }
+
+    .track-ext {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* плеер */
+    .player {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(8,8,8,0.95);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--line);
+      padding: 16px 24px;
+      z-index: 100;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .player.visible { transform: translateY(0); }
+
+    .player-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .player-info { min-width: 0; }
+
+    .player-title {
+      font-size: 13px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-artist {
+      font-size: 11px;
+      color: var(--dim);
+      margin-top: 2px;
+    }
+
+    .player-controls {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    .ctrl-btn {
+      background: none;
+      border: none;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      transition: color 0.2s;
+      padding: 4px;
+    }
+
+    .ctrl-btn:hover { color: var(--text); }
+
+    .ctrl-btn.play-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .ctrl-btn.play-btn:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .player-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .time-row {
+      font-size: 11px;
+      color: var(--dim);
+    }
+
+    /* прогресс */
+    .progress-wrap {
+      width: 100%;
+      height: 2px;
+      background: var(--muted);
+      cursor: pointer;
+      position: relative;
+      margin-top: 4px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s linear;
+      pointer-events: none;
+    }
+
+    /* volume */
+    .vol-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vol-icon { font-size: 12px; color: var(--dim); }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 80px;
+      height: 2px;
+      background: var(--muted);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    /* loading */
+    .loading {
+      display: none;
+      padding: 60px 0;
+      text-align: center;
+      color: var(--dim);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+    }
+
+    .loading.visible { display: block; }
+
+    @media (max-width: 600px) {
+      .player-inner {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .player-right { align-items: flex-start; }
+      .player-controls { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="logo">void<span>.</span>music</div>
+    <div class="status-dot" id="statusDot"></div>
+  </header>
+
+  <div class="error-screen" id="errorScreen">
+    <div class="error-code" id="errorCode">503</div>
+    <div class="error-title" id="errorTitle">server offline</div>
+    <div class="error-msg" id="errorMsg">телефон недоступен. зайди позже — музыка никуда не денется.</div>
+    <button class="retry-btn" onclick="init()">↻ попробовать снова</button>
+  </div>
+
+  <div class="search-row" id="searchRow" style="display:none">
+    <input class="search-input" id="searchInput" type="text" placeholder="поиск по названию или артисту..." />
+    <span class="track-count" id="trackCount"></span>
+  </div>
+
+  <div class="loading visible" id="loading">подключение...</div>
+  <div class="tracklist" id="tracklist"></div>
+</div>
+
+<div class="player" id="player">
+  <div class="player-inner">
+    <div class="player-info">
+      <div class="player-title" id="playerTitle">—</div>
+      <div class="player-artist" id="playerArtist">—</div>
+    </div>
+    <div class="player-controls">
+      <button class="ctrl-btn" id="prevBtn" title="предыдущий">◀◀</button>
+      <button class="ctrl-btn play-btn" id="playBtn" title="play/pause">▶</button>
+      <button class="ctrl-btn" id="nextBtn" title="следующий">▶▶</button>
+    </div>
+    <div class="player-right">
+      <div class="time-row"><span id="curTime">0:00</span> / <span id="durTime">0:00</span></div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="vol-row">
+        <span class="vol-icon">▤</span>
+        <input type="range" id="volSlider" min="0" max="1" step="0.01" value="0.8" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="audioEl"></audio>
+
+<script>
+  // ← СЮДА ВСТАВЬ СВОЮ ССЫЛКУ cloudflared
+  const API = 'https://YOUR-TUNNEL.trycloudflare.com';
+
+  const audio = document.getElementById('audioEl');
+  let tracks = [];
+  let filtered = [];
+  let currentIdx = -1;
+
+  // --- init ---
+  async function init() {
+    showLoading(true);
+    hideError();
+
+    try {
+      const res = await fetch(`${API}/ping`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) throw { code: res.status };
+
+      const data = await fetch(`${API}/tracks`).then(r => r.json());
+      tracks = data.tracks || [];
+      filtered = [...tracks];
+
+      setStatus(true);
+      showLoading(false);
+      document.getElementById('searchRow').style.display = 'flex';
+      renderList();
+    } catch (err) {
+      setStatus(false);
+      showLoading(false);
+      showError(err.code);
+    }
+  }
+
+  // --- error ui ---
+  function showError(code) {
+    const el = document.getElementById('errorScreen');
+    document.getElementById('errorCode').textContent = code || '503';
+    document.getElementById('errorTitle').textContent =
+      code === 404 ? 'not found' :
+      code === 500 ? 'server error' :
+      'server offline';
+    document.getElementById('errorMsg').textContent =
+      code === 404 ? 'апи не нашёл что ты искал.' :
+      code === 500 ? `что-то сломалось на сервере. код: ${code}` :
+      'телефон недоступен. зайди позже — музыка никуда не денется.';
+    el.classList.add('visible');
+  }
+
+  function hideError() {
+    document.getElementById('errorScreen').classList.remove('visible');
+    document.getElementById('searchRow').style.display = 'none';
+  }
+
+  function showLoading(v) {
+    document.getElementById('loading').classList.toggle('visible', v);
+  }
+
+  function setStatus(online) {
+    const dot = document.getElementById('statusDot');
+    dot.className = 'status-dot ' + (online ? 'online' : 'offline');
+  }
+
+  // --- render ---
+  function renderList() {
+    const el = document.getElementById('tracklist');
+    document.getElementById('trackCount').textContent = `${filtered.length} треков`;
+
+    el.innerHTML = filtered.map((t, i) => `
+      <div class="track-item ${i === currentIdx ? 'active' : ''}"
+           onclick="playTrack(${i})"
+           data-idx="${i}">
+        <div class="track-num">${i + 1}</div>
+        <div class="track-info">
+          <div class="track-title">${esc(t.title)}</div>
+          <div class="track-artist">${esc(t.artist)}</div>
+        </div>
+        <div class="track-ext">${esc(t.ext)}</div>
+      </div>
+    `).join('');
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
+  }
+
+  // --- playback ---
+  function playTrack(idx) {
+    if (idx < 0 || idx >= filtered.length) return;
+    currentIdx = idx;
+    const t = filtered[idx];
+    audio.src = `${API}/track/${t.id}`;
+    audio.load();
+    audio.play().catch(() => {});
+    document.getElementById('playerTitle').textContent = t.title;
+    document.getElementById('playerArtist').textContent = t.artist;
+    document.getElementById('player').classList.add('visible');
+    document.getElementById('playBtn').textContent = '⏸';
+    renderList();
+  }
+
+  document.getElementById('playBtn').onclick = () => {
+    if (audio.paused) { audio.play(); document.getElementById('playBtn').textContent = '⏸'; }
+    else { audio.pause(); document.getElementById('playBtn').textContent = '▶'; }
+  };
+
+  document.getElementById('prevBtn').onclick = () => playTrack(currentIdx - 1);
+  document.getElementById('nextBtn').onclick = () => playTrack(currentIdx + 1);
+
+  audio.addEventListener('ended', () => playTrack(currentIdx + 1));
+
+  audio.addEventListener('pause', () => {
+    document.getElementById('playBtn').textContent = '▶';
+  });
+
+  audio.addEventListener('play', () => {
+    document.getElementById('playBtn').textContent = '⏸';
+  });
+
+  // прогресс
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('curTime').textContent = fmt(audio.currentTime);
+    document.getElementById('durTime').textContent = fmt(audio.duration);
+  });
+
+  document.getElementById('progressWrap').addEventListener('click', e => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
+  });
+
+  // громкость
+  audio.volume = 0.8;
+  document.getElementById('volSlider').addEventListener('input', e => {
+    audio.volume = e.target.value;
+  });
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  }
+
+  // --- поиск ---
+  document.getElementById('searchInput').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    filtered = tracks.filter(t =>
+      t.title.toLowerCase().includes(q) ||
+      t.artist.toLowerCase().includes(q)
+    );
+    currentIdx = -1;
+    renderList();
+  });
+
+  // --- запуск ---
+  init();
+</script>
+</body>
+</html>
